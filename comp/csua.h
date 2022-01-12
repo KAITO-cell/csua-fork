@@ -175,6 +175,7 @@ struct Expression_tag {
 typedef enum {
     EXPRESSION_STATEMENT = 1,
     DECLARATION_STATEMENT,
+    IF_STATEMENT,
     STATEMENT_TYPE_COUNT_PLUS_ONE
 } StatementType;
 
@@ -185,6 +186,7 @@ struct Statement_tag {
     union {
         Expression   *expression_s;
         Declaration  *declaration_s;
+	IF_Statement *IF_Statement_s;
     }u;
 
 };
@@ -213,6 +215,11 @@ typedef struct FunctionDeclarationList_tag {
     FunctionDeclaration                *func;
     struct FunctionDeclarationList_tag *next;
 } FunctionDeclarationList;
+
+typedef struct IF_StatementList_tag {
+	Statement 			*stmt;
+	struct IF_StatementList_tag 	*next;
+} IF_StatementList;
 
 struct CS_Compiler_tag {
     MEM_Storage      storage;
