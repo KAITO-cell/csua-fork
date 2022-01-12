@@ -571,7 +571,16 @@ static void leave_declstmt(Statement* stmt, Visitor* visitor) {
     }
 }
 
+static void enter_IF_stmt(Statement* stmt, Visitor* visitor){
+	//get evaluation
+	CS_Compiler* compiler = ((MeanVisitor*)visitor)->compiler;
+	compiler->IF_list = cs_chain_IF_Statement(compiler);
+}
 
+static void leave_IF_stmt(Statement* stmt, Visitor* visitor){
+	IF_Statement IFstmt = stmt->u.IF_Statement_s;
+	//get evaluation
+}
 MeanVisitor* create_mean_visitor() {
     visit_expr* enter_expr_list;
     visit_expr* leave_expr_list;
