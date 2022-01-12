@@ -192,8 +192,8 @@ struct Statement_tag {
 };
 
 struct IF_Statement_tag {
-	bool expression_value;
-	StatementList stmtlist;
+	CS_Boolean expression_value;
+	StatementList *stmtlist;
 	int line_number;//statement list count;
 };
 

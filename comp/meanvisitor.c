@@ -571,6 +571,13 @@ static void leave_declstmt(Statement* stmt, Visitor* visitor) {
     }
 }
 
+static Expression get_eval(Statement* stmt, Visitor* visitor){
+	//CS_Compiler* compiler = ((MeanVisitor*)visitor)->compiler;
+
+	Expression expr_val = stmt->u.IF_Statement_s->expression_value;
+	return expr_val;
+}
+
 static void enter_IF_stmt(Statement* stmt, Visitor* visitor){
 	//get evaluation
 	CS_Compiler* compiler = ((MeanVisitor*)visitor)->compiler;
