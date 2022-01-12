@@ -353,6 +353,18 @@ static void leave_declstmt(Statement* stmt, Visitor* visitor) {
     fprintf(stderr, "leave declstmt\n");
 }
 
+//evaluate expression true or not
+static void enter_IF_stmt(Statement* stmt, Visitor* visitor){
+	pirnt_depth();
+	inclement();
+}
+
+static void leave_IF_stmt(Statement* stmt, Visitor* visitor){
+	decrement();
+	print_depth();
+	fprintf(stderr, "leave declstmt\n");
+}
+
 
 Visitor* create_treeview_visitor() {
     visit_expr* enter_expr_list;
