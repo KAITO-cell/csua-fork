@@ -6,7 +6,9 @@
 #include "visitor.h"
 #include "../memory/MEM.h"
 
-
+//関数を定義できるようにするなら返り値の型が左辺の型と合っているか確認する
+//必要に応じてキャストノードを追加する
+//キャストができない組合せならエラー
 
 #define cs_is_type(type, cs_type) \
   ((type)->basic_type == (cs_type))
@@ -572,6 +574,29 @@ static void leave_declstmt(Statement* stmt, Visitor* visitor) {
 }
 
 
+static void enter_ifstmt(Statement* stmt, Visitor* visitor) {
+    //fprintf(stderr, "enter ifstmt, type=%s\n", get_ifstmt_type_name(stmt->u.ifstatement_s->type));
+}
+
+static void leave_ifstmt(Statement* stmt, Visitor* visitor) {
+    //fprintf(stderr, "leave ifstmt\n");
+}
+
+static void enter_whilestmt(Statement* stmt, Visitor* visitor){
+    //fprintf(stderr, "leave while stmt\n");
+}
+static void leave_whilestmt(Statement* stmt, Visitor* visitor){
+    //fprintf(stderr, "leave while stmt\n");
+}
+
+static void enter_stmtblock(Statement* stmt, Visitor* visitor) {
+    //fprintf(stderr, "enter stmtblock!!\n");
+}
+
+static void leave_stmtblock(Statement* stmt, Visitor* visitor) {
+    //fprintf(stderr, "leave stmtblock!!\n");
+}
+
 MeanVisitor* create_mean_visitor() {
     visit_expr* enter_expr_list;
     visit_expr* leave_expr_list;
@@ -618,12 +643,15 @@ MeanVisitor* create_mean_visitor() {
     enter_expr_list[LOGICAL_NOT_EXPRESSION]   = enter_lognotexpr;
     enter_expr_list[ASSIGN_EXPRESSION]        = enter_assignexpr;
     enter_expr_list[FUNCTION_CALL_EXPRESSION] = enter_funccallexpr;
-    enter_expr_list[CAST_EXPRESSION]          = enter_castexpr;    
+    enter_expr_list[CAST_EXPRESSION]          = enter_castexpr;
     
     enter_stmt_list[EXPRESSION_STATEMENT]     = enter_exprstmt;
     enter_stmt_list[DECLARATION_STATEMENT]    = enter_declstmt;
+    enter_stmt_list[IF_STATEMENT]             = enter_ifstmt;
+    enter_stmt_list[STATEMENT_BLOCK]          = enter_stmtblock;
+    enter_stmt_list[WHILE_STATEMENT]          = enter_whilestmt;
     
-    
+
     
     leave_expr_list[BOOLEAN_EXPRESSION]       = leave_boolexpr;
     leave_expr_list[INT_EXPRESSION]           = leave_intexpr;
@@ -653,6 +681,9 @@ MeanVisitor* create_mean_visitor() {
     
     leave_stmt_list[EXPRESSION_STATEMENT]     = leave_exprstmt;
     leave_stmt_list[DECLARATION_STATEMENT]    = leave_declstmt;
+    leave_stmt_list[IF_STATEMENT]             = leave_ifstmt;
+    leave_stmt_list[STATEMENT_BLOCK]          = leave_stmtblock;
+    leave_stmt_list[WHILE_STATEMENT]          = leave_whilestmt;
     
 
     ((Visitor*)visitor)->enter_expr_list = enter_expr_list;
@@ -660,8 +691,11 @@ MeanVisitor* create_mean_visitor() {
     ((Visitor*)visitor)->enter_stmt_list = enter_stmt_list;
     ((Visitor*)visitor)->leave_stmt_list = leave_stmt_list;
     ((Visitor*)visitor)->notify_expr_list = NULL;
-            
-            
+    ((Visitor*)visitor)->if_codegen_expr_list = NULL;
+    ((Visitor*)visitor)->if_codegen_stmt_list = NULL;
+    ((Visitor*)visitor)->while_codegen_expr_list = NULL;
+    ((Visitor*)visitor)->while_codegen_stmt_list = NULL;
+
     
     
 

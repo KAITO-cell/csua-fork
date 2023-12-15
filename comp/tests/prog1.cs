@@ -1,3 +1,4 @@
+
 print();
 # for primary expression
 10;
@@ -53,8 +54,3 @@ boolean p = false;
 int k = 1;
 double j = 1.2;
 i = j = 1;
-
-if ( TRUE_T ) {
-	print();
-	print();
-}

@@ -19,6 +19,16 @@ void print_depth() {
     }
 }
 
+char* get_ifstmt_type_name(IfStatementType type) {
+    switch (type) {
+        case IF_ONLY : return "IF_ONLY";
+        case IF_ELSE : return "IF_ELSE";
+        case IF_ELSEIF : return "IF_ELSEIF";
+        case IF_ELSEIF_ELSE : return "IF_ELSEIF_ELSE";
+        default : return "Unknown IfStatementType";
+    }
+}
+
 /*
 static char* get_type_name(CS_BasicType type) {
     switch(type) {
@@ -353,6 +363,41 @@ static void leave_declstmt(Statement* stmt, Visitor* visitor) {
     fprintf(stderr, "leave declstmt\n");
 }
 
+static void enter_ifstmt(Statement* stmt, Visitor* visitor) {
+    print_depth();
+    fprintf(stderr, "enter ifstmt, type=%s\n", get_ifstmt_type_name(stmt->u.ifstatement_s->type));
+    increment();
+}
+
+static void leave_ifstmt(Statement* stmt, Visitor* visitor) {
+    decrement();
+    print_depth();
+    fprintf(stderr, "leave ifstmt\n");
+}
+
+static void enter_stmtblock(Statement* stmt, Visitor* visitor) {
+    print_depth();
+    fprintf(stderr, "enter stmtblock!!\n");
+    increment();
+}
+
+static void leave_stmtblock(Statement* stmt, Visitor* visitor) {
+    decrement();
+    print_depth();
+    fprintf(stderr, "leave stmtblock!!\n");
+}
+static void enter_whilestmt(Statement* stmt, Visitor* visitor) {
+	print_depth();
+	fprintf(stderr, "enter while statement\n");
+	increment();
+}
+static void leave_whilestmt(Statement* stmt, Visitor* viistor){
+	decrement();
+	print_depth();
+	fprintf(stderr, "leave while statement\n");
+}
+
+
 
 Visitor* create_treeview_visitor() {
     visit_expr* enter_expr_list;
@@ -395,7 +440,9 @@ Visitor* create_treeview_visitor() {
     
     enter_stmt_list[EXPRESSION_STATEMENT]     = enter_exprstmt;
     enter_stmt_list[DECLARATION_STATEMENT]    = enter_declstmt;
-    
+    enter_stmt_list[IF_STATEMENT]             = enter_ifstmt;
+    enter_stmt_list[STATEMENT_BLOCK]          = enter_stmtblock;
+    enter_stmt_list[WHILE_STATEMENT]          = enter_whilestmt;
     
     
     leave_expr_list[BOOLEAN_EXPRESSION]       = leave_boolexpr;
@@ -426,14 +473,21 @@ Visitor* create_treeview_visitor() {
     
     leave_stmt_list[EXPRESSION_STATEMENT]     = leave_exprstmt;
     leave_stmt_list[DECLARATION_STATEMENT]    = leave_declstmt;
-    
+    leave_stmt_list[IF_STATEMENT]             = leave_ifstmt;
+    leave_stmt_list[STATEMENT_BLOCK]          = leave_stmtblock;
+    leave_stmt_list[WHILE_STATEMENT]          = leave_whilestmt;
 
     visitor->enter_expr_list = enter_expr_list;
     visitor->leave_expr_list = leave_expr_list;
     visitor->enter_stmt_list = enter_stmt_list;
     visitor->leave_stmt_list = leave_stmt_list;
     visitor->notify_expr_list = NULL;
-            
+    visitor->if_codegen_expr_list = NULL;
+    visitor->if_codegen_stmt_list = NULL;
+    visitor->while_codegen_expr_list = NULL;
+    visitor->while_codegen_stmt_list = NULL;
+    
+    
     
     
 
@@ -447,6 +501,12 @@ void delete_visitor(Visitor* visitor) {
     MEM_free(visitor->leave_stmt_list);
     if (visitor->notify_expr_list) {
         MEM_free(visitor->notify_expr_list);
+    }
+    if (visitor->if_codegen_expr_list) {
+        MEM_free(visitor->if_codegen_stmt_list);
+    }
+    if (visitor->if_codegen_stmt_list) {
+        MEM_free(visitor->if_codegen_expr_list);
     }
     MEM_free(visitor);
 }

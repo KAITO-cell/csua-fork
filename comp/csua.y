@@ -1,10 +1,8 @@
+
 %{
 #include <stdio.h>
 #define YYDEBUG 1
-#include "csua.h"  
-
-int yyerror(char const *str);
-int yylex();
+#include "csua.h"
 %}
 %union{
     int                  iv;
@@ -17,6 +15,11 @@ int yylex();
     CS_BasicType         type_specifier;
     ParameterList       *parameter_list;
     ArgumentList        *argument_list;
+    StatementList       *statement_list;
+    IfStatement         *if_statement;
+    ElseIfStatement     *elsif_stmt;
+    ElseIfStatementList *elsif_list;
+    WhileStatement      *while_statement;
 }
 
 %token LP
@@ -69,7 +72,7 @@ int yylex();
 %token INT_T
 %token DOUBLE_T
 %token STRING_T
-
+//ポインタは？
 %type <expression> expression assignment_expression logical_or_expression
                  logical_and_expression equality_expression relational_expression
                  additive_expression multiplicative_expression unary_expression
@@ -77,15 +80,29 @@ int yylex();
                  
 %type <assignment_operator> assignment_operator
 %type <type_specifier> type_specifier
-%type <statement> statement declaration_statement
+%type <statement> statement declaration_statement statement_block if_statement broad_statement while_statement
+%type <elsif_list> elsif_list
+%type <statement_list> statement_list
 %type <function_declaration> function_definition
 %type <parameter_list> parameter_list
 %type <argument_list> argument_list
 
 %%
 translation_unit
-        : definition_or_statement_list
-        | translation_unit definition_or_statement_list
+        : translation_unit definition_or_statement_list
+        {
+                CS_Compiler* compiler = cs_get_current_compiler();
+                if (compiler) {
+                        //fprintf(stderr, "line %d : translation_unit 1 ", compiler->current_line);
+                }
+        }
+        | definition_or_statement_list
+        {
+                CS_Compiler* compiler = cs_get_current_compiler();
+                if (compiler) {
+                        //fprintf(stderr, "line %d : translation_unit 2 ", compiler->current_line);
+                }
+        }
         ;
 
 
@@ -96,14 +113,54 @@ definition_or_statement_list
            CS_Compiler* compiler = cs_get_current_compiler();
            if (compiler) {
                compiler->func_list = cs_chain_function_declaration_list(compiler->func_list, $1);
+                //fprintf(stderr, "line %d :definition_or_statement_list 1 ", compiler->current_line);
            }
         }
-        | statement_list
+        | statement_list {
+           CS_Compiler* compiler = cs_get_current_compiler();
+           if (compiler) {
+               compiler->root_stmt_list = $1;
+               //fprintf(stderr, "line %d :definition_or_statement_list 2 ", compiler->current_line);
+           }
+        }
+        ;
+
+statement_block
+        : LC statement_list RC
+        {
+                CS_Compiler* compiler = cs_get_current_compiler();
+                if (compiler) {
+                        //fprintf(stderr, "line %d : statement_block", compiler->current_line);
+                }
+                $$ = cs_create_statement_block($2);
+        }
+        | LC RC
+        {
+                CS_Compiler* compiler = cs_get_current_compiler();
+                $$ = NULL;
+        }
         ;
 
 statement_list
         : statement_list broad_statement
+        {
+                CS_Compiler* compiler = cs_get_current_compiler();
+                if (compiler) {
+                        //fprintf(stderr, "line %d : statement_list 1 ", compiler->current_line);
+                }
+                $$ = cs_chain_statement_list($1, $2);
+        }
         | broad_statement
+        {
+                CS_Compiler* compiler = cs_get_current_compiler();
+                StatementList* stmt_list = cs_create_statement_list($1);
+                if (compiler->root_stmt_list == NULL) {
+                        //fprintf(stderr, "root_stmt_list = %p\n", stmt_list);
+                        compiler->root_stmt_list = stmt_list;
+                        //fprintf(stderr, "line %d :statement_list 2 ", compiler->current_line);
+                }
+                $$ = stmt_list;
+        }
         ;
 
 broad_statement
@@ -111,29 +168,118 @@ broad_statement
         {
            CS_Compiler* compiler = cs_get_current_compiler();
            if (compiler) {
-               compiler->stmt_list = cs_chain_statement_list(compiler->stmt_list, $1);
+               //fprintf(stderr, "line %d :broad_statement 1 ", compiler->current_line);
            }
+           $$ = $1;
         }
         | if_statement
+        {
+                CS_Compiler* compiler = cs_get_current_compiler();
+                if (compiler) {
+                        //fprintf(stderr, "line %d :broad_statement 2 ", compiler->current_line);
+                }
+                $$ = $1;
+        }
+        | statement_block
+        {
+                CS_Compiler* compiler = cs_get_current_compiler();
+                if (compiler) {
+                        //fprintf(stderr, "line %d :broad_statement 3 ", compiler->current_line);
+                }
+                $$ = $1;
+        }
+        | while_statement
+        {
+                 CS_Compiler* compiler = cs_get_current_compiler();
+                if (compiler) {
+                        //fprintf(stderr, "line %d :broad_statement 3 ", compiler->current_line);
+                }
+                $$ = $1;
+
+        }
         ;
 
 if_statement
-        : IF LP expression RP LC statement_list RC elsif_list ELSE LC statement_list RC { printf("IF LP ex RP LC stlist RC elsiflist ELSE LC stmtlist RC\n"); }
-	| IF LP expression RP LC statement_list RC elsif_list 
-        | IF LP expression RP LC statement_list RC            ELSE LC statement_list RC {printf("IF LP ex RP LC stlist RC ELSE LC stlist RC\n");}
-        | IF LP expression RP LC statement_list RC {printf("IF LP ex RP LC stlist RC\n");}
+        : IF LP expression RP statement_block elsif_list ELSE statement_block
+        {
+                CS_Compiler* compiler = cs_get_current_compiler();
+                if (compiler) {
+                        //fprintf(stderr, "line %d :if_statement 1 ", compiler->current_line);
+                }
+                $$ = cs_create_if_statement($3, $5, $6, $8);
+        }
+        | IF LP expression RP statement_block elsif_list
+        {
+                //Done
+                CS_Compiler* compiler = cs_get_current_compiler();
+                if (compiler) {
+                        //fprintf(stderr, "line %d :if_statement 2 ", compiler->current_line);
+                }
+                $$ = cs_create_if_statement($3, $5, $6, NULL);
+        }
+        | IF LP expression RP statement_block            ELSE statement_block
+        {
+                //Done;
+                CS_Compiler* compiler = cs_get_current_compiler();
+                if (compiler) {
+                        //fprintf(stderr, "line %d :if_statement 3 ", compiler->current_line);
+                }
+                $$ = cs_create_if_statement($3, $5, NULL, $7);
+        }
+        | IF LP expression RP statement_block
+        {
+                //Done
+                CS_Compiler* compiler = cs_get_current_compiler();
+                if (compiler) {
+                        ////fprintf(stderr, "line %d :if_statement 4 ", compiler->current_line);
+                }
+                $$ = cs_create_if_statement($3, $5, NULL, NULL);
+        }
         ;
 
 elsif_list
-        : elsif_list ELSIF LP expression RP LC statement_list RC {printf("else if\n");}
-        |            ELSIF LP expression RP LC statement_list RC {printf("else if2\n");}
+        : elsif_list ELSIF LP expression RP statement_block
+        {
+                CS_Compiler* compiler = cs_get_current_compiler();
+                if (compiler) {
+                        //fprintf(stderr, "line %d :elsif_list 1 ", compiler->current_line);
+                }
+                $$ = cs_chain_elsif_list($1, $4, $6);
+        }
+        |            ELSIF LP expression RP statement_block
+        {
+                CS_Compiler* compiler = cs_get_current_compiler();
+                if (compiler) {
+                        //fprintf(stderr, "line %d :elsif_list 2 ", compiler->current_line);
+                }
+                $$ = cs_create_elsif_list($3, $5);
+        }
+        ;
+
+while_statement
+        : WHILE LP expression RP statement_block
+        {
+                CS_Compiler* compiler = cs_get_current_compiler();
+                if (compiler) {
+                        //fprintf(stderr, "line %d :while ", compiler->current_line);
+                }
+                $$ = cs_create_while_statement($3,$5);//暫定
+        }
+        
         ;
 
 
-
 function_definition
-        : type_specifier IDENTIFIER LP RP SEMICOLON { $$ = cs_create_function_declaration($1, $2, NULL);}    
-        | type_specifier IDENTIFIER LP parameter_list RP SEMICOLON { $$ = cs_create_function_declaration($1, $2, $4);} 
+        : type_specifier IDENTIFIER LP RP SEMICOLON
+        {
+                $$ = cs_create_function_declaration($1, $2, NULL);
+                //fprintf(stderr, "function_definition 1\n");
+        }
+        | type_specifier IDENTIFIER LP parameter_list RP SEMICOLON
+        {
+                $$ = cs_create_function_declaration($1, $2, $4);
+                //fprintf(stderr, "function_definition 2\n");
+        }
         ;
         
 parameter_list
@@ -154,6 +300,13 @@ statement
                compiler->expr_list = cs_chain_expression_list(compiler->expr_list, $1);
            }
      */
+                CS_Compiler* compiler = cs_get_current_compiler();
+                if (compiler) {
+                        //fprintf(stderr, "line %d :", compiler->current_line);
+                }
+
+            //fprintf(stderr, "statement\n");
+
             $$ = cs_create_expression_statement($1);
         }
         | declaration_statement { /*printf("declaration_statement\n"); */}
@@ -181,7 +334,7 @@ expression
 	: assignment_expression 
          { 
              Expression* expr = $1;
-//             printf("type = %d\n", expr->kind);
+             print_ExpressionKind(expr->kind);
              $$ = $1;
          }
 	;
@@ -268,9 +421,9 @@ yyerror(char const *str)
     extern char *yytext;
     CS_Compiler* compiler = cs_get_current_compiler();
     if (compiler) {
-        fprintf(stderr, "line %d :", compiler->current_line);
+        //fprintf(stderr, "line %d :", compiler->current_line);
     }
     
-    fprintf(stderr, "parser error near %s\n", yytext);
+    //fprintf(stderr, "parser error near %s\n", yytext);
     return 0;
 }
